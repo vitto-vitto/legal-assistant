@@ -1,0 +1,126 @@
+// This is your Prisma schema file
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  planId       String    @map("plan_id")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  plan             Plan              @relation(fields: [planId], references: [id])
+  contracts        Contract[]
+  documents        Document[]
+  aiConsultations  AiConsultation[]
+  notifications    Notification[]
+  transactions     Transaction[]
+
+  @@map("users")
+}
+
+model Plan {
+  id        String   @id @default(uuid())
+  name      String
+  price     Decimal  @db.Decimal(10,2)
+  features  Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  users     User[]
+
+  @@map("plans")
+}
+
+model Contract {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  title     String
+  content   String    @db.Text
+  status    String
+  signed    Boolean   @default(false)
+  signedAt  DateTime? @map("signed_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("contracts")
+}
+
+model Document {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  name      String
+  fileUrl   String    @map("file_url")
+  type      String
+  status    String
+  analyzed  Boolean   @default(false)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("documents")
+}
+
+model AiConsultation {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  query     String   @db.Text
+  response  String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("ai_consultations")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  type      String
+  message   String   @db.Text
+  seen      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([userId, seen])
+  @@map("notifications")
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  amount      Float
+  type        String   // "INCOME" or "EXPENSE"
+  category    String
+  description String
+  date        DateTime
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("transactions")
+}
